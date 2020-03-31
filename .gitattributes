@@ -1,0 +1,2 @@
+HW1/test.npz filter=lfs diff=lfs merge=lfs -text
+HW1/train.npz filter=lfs diff=lfs merge=lfs -text
