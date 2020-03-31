@@ -1,6 +1,4 @@
-sklearn
 numpy
 matplotlib
 tensorflow
 keras
-
