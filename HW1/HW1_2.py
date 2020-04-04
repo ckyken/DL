@@ -5,6 +5,7 @@ import ipdb
 import argparse
 import numpy as np
 import h5py
+import pickle as pkl
 
 parser = argparse.ArgumentParser()
 
@@ -15,6 +16,8 @@ parser.add_argument('--epochs', type=int, default=50,
 parser.add_argument('--n_x', type=int, default=784, help='number of inputs')
 parser.add_argument('--n_h', type=int, default=64,
                     help='number of hidden units')
+parser.add_argument('--n_h2', type=int, default=2,
+                    help='number of hidden units')
 parser.add_argument('--beta', type=float, default=0.9,
                     help='parameter for momentum')
 parser.add_argument('--batch_size', type=int,
@@ -23,59 +26,61 @@ parser.add_argument('--batch_size', type=int,
 # parse the arguments
 opt = parser.parse_args()
 
-# MNIST_data = h5py.File("MNISTdata.hdf5", 'r')
-# x_train = np.float32(MNIST_data['x_train'][:])
-# y_train = np.int32(np.array(MNIST_data['y_train'][:, 0])).reshape(-1, 1)
-# x_test = np.float32(MNIST_data['x_test'][:])
-# y_test = np.int32(np.array(MNIST_data['y_test'][:, 0])).reshape(-1, 1)
-# MNIST_data.close()
 
-
-test = np.load('test.npz')
-train = np.load('train.npz')
-
-y_test = test['label']
-x_test = test['image']
-y_train = train['label']
-x_train = train['image']
-
-x_train = x_train.reshape(-1, x_train.shape[1] * x_train.shape[2])
-x_test = x_test.reshape(-1, x_test.shape[1] * x_test.shape[2])
-y_train = y_train.reshape(-1, 1)
-y_test = y_test.reshape(-1, 1)
-
-
-# ipdb.set_trace()
-
-
-# stack together for next step
-X = np.vstack((x_train, x_test))
-y = np.vstack((y_train, y_test))
-
-
-# one-hot encoding
 digits = 10
-examples = y.shape[0]
-y = y.reshape(1, examples)
-Y_new = np.eye(digits)[y.astype('int32')]
-Y_new = Y_new.T.reshape(digits, examples)
-
-
-# number of training set
-m = 12000
-m_test = X.shape[0] - m
-X_train, X_test = X[:m].T, X[m:].T
-Y_train, Y_test = Y_new[:, :m], Y_new[:, m:]
-
-
-# shuffle training set
-shuffle_index = np.random.permutation(m)
-X_train, Y_train = X_train[:, shuffle_index], Y_train[:, shuffle_index]
-
 params = {"W1": np.random.randn(opt.n_h, opt.n_x) * np.sqrt(1. / opt.n_x),
           "b1": np.zeros((opt.n_h, 1)) * np.sqrt(1. / opt.n_x),
-          "W2": np.random.randn(digits, opt.n_h) * np.sqrt(1. / opt.n_h),
-          "b2": np.zeros((digits, 1))*np.sqrt(1. / opt.n_h)}
+          "W2": np.random.randn(opt.n_h2, opt.n_h) * np.sqrt(1. / opt.n_h),
+          "b2": np.zeros((opt.n_h2, 1)) * np.sqrt(1. / opt.n_h),
+          "W3": np.random.randn(digits, opt.n_h2) * np.sqrt(1. / opt.n_h2),
+          "b3": np.zeros((digits, 1)) * np.sqrt(1. / opt.n_h2)}
+WEIGHT_FILE = 'weight.pkl'
+
+
+def get_data():
+    # MNIST_data = h5py.File("MNISTdata.hdf5", 'r')
+    # x_train = np.float32(MNIST_data['x_train'][:])
+    # y_train = np.int32(np.array(MNIST_data['y_train'][:, 0])).reshape(-1, 1)
+    # x_test = np.float32(MNIST_data['x_test'][:])
+    # y_test = np.int32(np.array(MNIST_data['y_test'][:, 0])).reshape(-1, 1)
+    # MNIST_data.close()
+
+    test = np.load('test.npz')
+    train = np.load('train.npz')
+
+    y_test = test['label']
+    x_test = test['image']
+    y_train = train['label']
+    x_train = train['image']
+
+    x_train = x_train.reshape(-1, x_train.shape[1] * x_train.shape[2])
+    x_test = x_test.reshape(-1, x_test.shape[1] * x_test.shape[2])
+    y_train = y_train.reshape(-1, 1)
+    y_test = y_test.reshape(-1, 1)
+
+    # stack together for next step
+    X = np.vstack((x_train, x_test))
+    y = np.vstack((y_train, y_test))
+
+    # one-hot encoding
+
+    examples = y.shape[0]
+    y = y.reshape(1, examples)
+    Y_new = np.eye(digits)[y.astype('int32')]
+    Y_new = Y_new.T.reshape(digits, examples)
+
+    # number of training set
+    # m = 12000
+    m = x_train.shape[0]
+    m_test = X.shape[0] - m
+    X_train, X_test = X[:m].T, X[m:].T
+    Y_train, Y_test = Y_new[:, :m], Y_new[:, m:]
+
+    # shuffle training set
+    shuffle_index = np.random.permutation(m)
+    X_train, Y_train = X_train[:, shuffle_index], Y_train[:, shuffle_index]
+
+    return X_train, Y_train, X_test, Y_test
 
 
 def sigmoid(z):
@@ -127,11 +132,17 @@ def feed_forward(X, params):
     # A1 = sigmoid(Z1)
     cache["A1"] = sigmoid(cache["Z1"])
 
-    # Z2 = W2.dot(A1) + b2
+    # Z2 = W2.dot(x) + b2
     cache["Z2"] = np.matmul(params["W2"], cache["A1"]) + params["b2"]
 
-    # A2 = softmax(Z2)
-    cache["A2"] = np.exp(cache["Z2"]) / np.sum(np.exp(cache["Z2"]), axis=0)
+    # A2 = sigmoid(Z2)
+    cache["A2"] = sigmoid(cache["Z2"])
+
+    # Z3 = W3.dot(A2) + b3
+    cache["Z3"] = np.matmul(params["W3"], cache["A2"]) + params["b3"]
+
+    # A3 = softmax(Z3)
+    cache["A3"] = np.exp(cache["Z3"]) / np.sum(np.exp(cache["Z3"]), axis=0)
 
     return cache
 
@@ -148,11 +159,23 @@ def back_propagate(X, Y, params, cache, m_batch):
         grads: dictionay a dictionary contains the gradients of corresponding weights and biases
     """
     # error at last layer
-    dZ2 = cache["A2"] - Y
+    dZ3 = cache["A3"] - Y
 
     # gradients at last layer (Py2 need 1. to transform to float)
-    dW2 = (1. / m_batch) * np.matmul(dZ2, cache["A1"].T)
+    dW3 = (1. / m_batch) * np.matmul(dZ3, cache["A2"].T)
+    db3 = (1. / m_batch) * np.sum(dZ3, axis=1, keepdims=True)
+
+    # ---
+
+    # back propgate through second layer
+    dA2 = np.matmul(params["W3"].T, dZ3)
+    dZ2 = dA2 * sigmoid(cache["Z2"]) * (1 - sigmoid(cache["Z2"]))
+
+    # gradients at second layer (Py2 need 1. to transform to float)
+    dW2 = (1. / m_batch) * np.matmul(dZ2, cache["A1"])
     db2 = (1. / m_batch) * np.sum(dZ2, axis=1, keepdims=True)
+
+    # ---
 
     # back propgate through first layer
     dA1 = np.matmul(params["W2"].T, dZ2)
@@ -162,68 +185,83 @@ def back_propagate(X, Y, params, cache, m_batch):
     dW1 = (1. / m_batch) * np.matmul(dZ1, X.T)
     db1 = (1. / m_batch) * np.sum(dZ1, axis=1, keepdims=True)
 
-    grads = {"dW1": dW1, "db1": db1, "dW2": dW2, "db2": db2}
+    grads = {"dW1": dW1, "db1": db1, "dW2": dW2,
+             "db2": db2, "dW3": dW3, "db3": db3}
 
     return grads
 
 
-# training
-for i in range(opt.epochs):
+if __name__ == "__main__":
 
-    # shuffle training set
-    permutation = np.random.permutation(X_train.shape[1])
-    X_train_shuffled = X_train[:, permutation]
-    Y_train_shuffled = Y_train[:, permutation]
+    X_train, Y_train, X_test, Y_test = get_data()
 
-    batch_num = len(x_train) // opt.batch_size
-    predicts = []
-    golds = []
+    # training
+    for i in range(opt.epochs):
 
-    for j in range(batch_num):
+        # shuffle training set
+        permutation = np.random.permutation(X_train.shape[1])
+        X_train_shuffled = X_train[:, permutation]
+        Y_train_shuffled = Y_train[:, permutation]
 
-        # get mini-batch
-        begin = j * opt.batch_size
-        end = min(begin + opt.batch_size, X_train.shape[1] - 1)
-        X = X_train_shuffled[:, begin:end]
-        Y = Y_train_shuffled[:, begin:end]
-        m_batch = end - begin
+        batch_num = len(X_train) // opt.batch_size
+        predicts = []
+        golds = []
 
-        # forward and backward
-        cache = feed_forward(X, params)
-        grads = back_propagate(X, Y, params, cache, m_batch)
+        for j in range(batch_num):
 
-        dW1 = grads["dW1"]
-        db1 = grads["db1"]
-        dW2 = grads["dW2"]
-        db2 = grads["db2"]
+            # get mini-batch
+            begin = j * opt.batch_size
+            end = min(begin + opt.batch_size, X_train.shape[1] - 1)
+            X = X_train_shuffled[:, begin:end]
+            Y = Y_train_shuffled[:, begin:end]
+            m_batch = end - begin
 
-        # with momentum (optional)
-        dW1 = (opt.beta * dW1 + (1. - opt.beta) * grads["dW1"])
-        db1 = (opt.beta * db1 + (1. - opt.beta) * grads["db1"])
-        dW2 = (opt.beta * dW2 + (1. - opt.beta) * grads["dW2"])
-        db2 = (opt.beta * db2 + (1. - opt.beta) * grads["db2"])
+            # forward and backward
+            cache = feed_forward(X, params)
+            grads = back_propagate(X, Y, params, cache, m_batch)
 
-        # gradient descent
-        params["W1"] = params["W1"] - opt.lr * dW1
-        params["b1"] = params["b1"] - opt.lr * db1
-        params["W2"] = params["W2"] - opt.lr * dW2
-        params["b2"] = params["b2"] - opt.lr * db2
+            dW1 = grads["dW1"]
+            db1 = grads["db1"]
+            dW2 = grads["dW2"]
+            db2 = grads["db2"]
+            dW3 = grads["dW3"]
+            db3 = grads["db3"]
 
-    # forward pass on training set
-    cache = feed_forward(X_train, params)
-    train_loss = compute_loss(Y_train, cache["A2"])
+            # with momentum (optional)
+            dW1 = (opt.beta * dW1 + (1. - opt.beta) * grads["dW1"])
+            db1 = (opt.beta * db1 + (1. - opt.beta) * grads["db1"])
+            dW2 = (opt.beta * dW2 + (1. - opt.beta) * grads["dW2"])
+            db2 = (opt.beta * db2 + (1. - opt.beta) * grads["db2"])
+            dW3 = (opt.beta * dW3 + (1. - opt.beta) * grads["dW3"])
+            db3 = (opt.beta * db3 + (1. - opt.beta) * grads["db3"])
 
-    # evaluate_test
-    predicts += np.argmax(cache["A2"], axis=0).tolist()
-    golds += np.argmax(Y_train, axis=0).tolist()
+            # gradient descent
+            params["W1"] = params["W1"] - opt.lr * dW1
+            params["b1"] = params["b1"] - opt.lr * db1
+            params["W2"] = params["W2"] - opt.lr * dW2
+            params["b2"] = params["b2"] - opt.lr * db2
+            params["W3"] = params["W3"] - opt.lr * dW3
+            params["b3"] = params["b3"] - opt.lr * db3
 
-    # forward pass on test set
-    cache = feed_forward(X_test, params)
-    test_loss = compute_loss(Y_test, cache["A2"])
+        # forward pass on training set
+        cache = feed_forward(X_train, params)
+        train_loss = compute_loss(Y_train, cache["A3"])
 
-    # evaluate_test
-    #predicts += np.argmax(cache["A2"], axis=0).tolist()
-    #golds += np.argmax(Y_test, axis=0).tolist()
+        # evaluate_test
+        predicts += np.argmax(cache["A3"], axis=0).tolist()
+        golds += np.argmax(Y_train, axis=0).tolist()
 
-    print("Epoch {}: training loss = {}, test loss = {}, accur = {}".format(
-        i + 1, train_loss, test_loss, evaluation(predicts, golds)))
+        # forward pass on test set
+        cache = feed_forward(X_test, params)
+        test_loss = compute_loss(Y_test, cache["A3"])
+
+        # evaluate_test
+        # predicts += np.argmax(cache["A2"], axis=0).tolist()
+        # golds += np.argmax(Y_test, axis=0).tolist()
+
+        print("Epoch {}: training loss = {}, test loss = {}, accur = {}".format(
+            i + 1, train_loss, test_loss, evaluation(predicts, golds)))
+
+    with open(WEIGHT_FILE, 'wb') as stream:
+        print("Saving weights")
+        pkl.dump(params, stream)
