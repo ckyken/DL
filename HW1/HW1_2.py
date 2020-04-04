@@ -6,6 +6,7 @@ import argparse
 import numpy as np
 import h5py
 import pickle as pkl
+import json
 
 parser = argparse.ArgumentParser()
 
@@ -132,7 +133,7 @@ def feed_forward(X, params):
     # A1 = sigmoid(Z1)
     cache["A1"] = sigmoid(cache["Z1"])
 
-    # Z2 = W2.dot(x) + b2
+    # Z2 = W2.dot(A1) + b2
     cache["Z2"] = np.matmul(params["W2"], cache["A1"]) + params["b2"]
 
     # A2 = sigmoid(Z2)
@@ -195,6 +196,9 @@ if __name__ == "__main__":
 
     X_train, Y_train, X_test, Y_test = get_data()
 
+    TrainError = []
+    TestError = []
+
     # training
     for i in range(opt.epochs):
 
@@ -206,6 +210,8 @@ if __name__ == "__main__":
         batch_num = len(X_train) // opt.batch_size
         predicts = []
         golds = []
+        predicts_test = []
+        golds_test = []
 
         for j in range(batch_num):
 
@@ -247,7 +253,7 @@ if __name__ == "__main__":
         cache = feed_forward(X_train, params)
         train_loss = compute_loss(Y_train, cache["A3"])
 
-        # evaluate_test
+        # evaluate_train
         predicts += np.argmax(cache["A3"], axis=0).tolist()
         golds += np.argmax(Y_train, axis=0).tolist()
 
@@ -256,12 +262,21 @@ if __name__ == "__main__":
         test_loss = compute_loss(Y_test, cache["A3"])
 
         # evaluate_test
-        # predicts += np.argmax(cache["A2"], axis=0).tolist()
-        # golds += np.argmax(Y_test, axis=0).tolist()
+        predicts_test += np.argmax(cache["A2"], axis=0).tolist()
+        golds_test += np.argmax(Y_test, axis=0).tolist()
 
-        print("Epoch {}: training loss = {}, test loss = {}, accur = {}".format(
+        print("Epoch {}: training loss = {}, test loss = {}, Train_accur = {}".format(
             i + 1, train_loss, test_loss, evaluation(predicts, golds)))
+
+        TrainError.append(1 - evaluation(predicts, golds))
+        TestError.append(1 - evaluation(predicts_test, golds_test))
 
     with open(WEIGHT_FILE, 'wb') as stream:
         print("Saving weights")
         pkl.dump(params, stream)
+
+    with open("Train_error_rate.json", mode="w") as stream:
+        json.dump(TrainError, stream)
+
+    with open("Test_error_rate.json", mode="w") as stream:
+        json.dump(TestError, stream)
