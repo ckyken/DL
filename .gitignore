@@ -130,3 +130,6 @@ dmypy.json
 .DS_Store
 
 *.pkl
+*.json
+
+HW1_2/problem2-CNN
