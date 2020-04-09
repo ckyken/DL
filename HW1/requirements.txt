@@ -1,4 +1,8 @@
 numpy
+pandas
 matplotlib
 tensorflow
 keras
+skimage (scikit-image)
+tqdm
+pytorch
