@@ -10,7 +10,6 @@ import torch.nn as nn
 from torch.autograd import Variable
 from torch.nn import Linear, ReLU, CrossEntropyLoss, Sequential, Conv2d, MaxPool2d, Module, Softmax, BatchNorm2d, Dropout, Softmax
 from torch.optim import Adam, SGD
-import json
 
 trainData = pd.read_csv('problem2-CNN/train.csv')
 testData = pd.read_csv('problem2-CNN/test.csv')
@@ -81,34 +80,36 @@ def evaluation(predicts, golds):
             correct += 1
     return correct / total
 
-class Net(nn.Module):
-    def __init__(self, D_in = 4 * 16 * 16, H = 100, D_out = 3):
-        super(Net, self).__init__()
-        self.CNN = nn.Sequential(
-                # Defining a 2D convolution layer
-            Conv2d(3, 4, kernel_size=3, stride=1, padding=1),
-            BatchNorm2d(4),
-            ReLU(inplace=True),
-            MaxPool2d(kernel_size=2, stride=2),
-                # Defining another 2D convolution layer
-            Conv2d(4, 4, kernel_size=3, stride=1, padding=1),
-            BatchNorm2d(4),
-            ReLU(inplace=True),
-            MaxPool2d(kernel_size=2, stride=2),
+ class Net(nn.Module):
+        def __init__(self, D_in = 4 * 16 * 16, H = 100, D_out = 3):
+            super(Net, self).__init__()
+            self.CNN = nn.Sequential(
+                    # Defining a 2D convolution layer
+                Conv2d(3, 4, kernel_size=3, stride=1, padding=1),
+                BatchNorm2d(4),
+                ReLU(inplace=True),
+                MaxPool2d(kernel_size=2, stride=2),
+                    # Defining another 2D convolution layer
+                Conv2d(4, 4, kernel_size=3, stride=1, padding=1),
+                BatchNorm2d(4),
+                ReLU(inplace=True),
+                MaxPool2d(kernel_size=2, stride=2),
 
-        )
-        self.DNN = nn.Sequential(
-            nn.Linear(D_in, H),
-            nn.ReLU(),
-            nn.Linear(H, D_out),
+            )
+            self.DNN = nn.Sequential(
+                nn.Linear(D_in, H),
+                nn.ReLU(),
+                nn.Linear(H, D_out),
 
-        )
+            )
+#             self.softmax = nn.Softmax
 
-    def forward(self, x):
-        x = self.CNN(x)
-        x = x.view(x.shape[0], -1)
-        x = self.DNN(x)
-        return x
+        def forward(self, x):
+            x = self.CNN(x)
+            x = x.view(x.shape[0], -1)
+            x = self.DNN(x)
+#             x = self.softmax(x)
+            return x
 
 loss_func = nn.CrossEntropyLoss(reduction='sum')
 model = Net()
@@ -150,7 +151,6 @@ def train_epoch(model, train_data, Y_train, test_data, Y_test, batch_size = 64, 
     Y_test = torch.from_numpy(Y_test)
     loss_append = []
     train_accur = []
-    test_accur = []
     for i in range(epoch):
         permutation = np.random.permutation(train_data.shape[0])
         train_data_shuffled = train_data[permutation, :, :, :]
@@ -184,7 +184,11 @@ def train_epoch(model, train_data, Y_train, test_data, Y_test, batch_size = 64, 
             X_afterDNN = model(X)
             y_hat = torch.softmax(X_afterDNN, dim=1)
 
+            # ------test data-------------
+            model.eval()
 
+            test_result_temp = model(test_data)
+            test_result = torch.softmax(test_result_temp, dim=1)
             # print(X_afterDNN)
             # print(Y)
 
@@ -202,19 +206,11 @@ def train_epoch(model, train_data, Y_train, test_data, Y_test, batch_size = 64, 
             golds += Y.tolist()
             predicts += torch.argmax(y_hat, dim=1).tolist()
 
-        # ------test data-------------
-        model.eval()
-
-        test_result_temp = model(test_data)
-        test_result = torch.softmax(test_result_temp, dim=1)
-        predicts_test = torch.argmax(test_result, dim=1).tolist()
-
 #         print("predict : ", predicts)
 
-
-        loss_append.append(epoch_loss / train_data.shape[0])
+        predicts_test += torch.argmax(test_result, dim=1).tolist()
+        loss_append.append(epoch_loss)
         train_accur.append(evaluation(predicts, golds))
-        test_accur.append(evaluation(predicts_test, Y_test))
 
 #         print("gold : ", golds)
 #         print(predicts)
@@ -222,15 +218,13 @@ def train_epoch(model, train_data, Y_train, test_data, Y_test, batch_size = 64, 
 #         golds += np.argmax(Y_train, axis=).tolist()
         print("epoch : ", i + 1, "loss : ", epoch_loss / train_data.shape[0], "train_accur : "
               , evaluation(predicts, golds), "test_accur : ", evaluation(predicts_test, Y_test))
-    # torch.save(model.state_dict(), "problem2-CNN/state_dict/model_state_dict")
-    # torch.save(optimizer.state_dict(),)
+    torch.save(model.state_dict(), problem2-CNN/state_dict/model_state_dict)
+    torch.save(optimizer.state_dict(),)
 
     with open("HW2_cross_entropy_loss.json", mode="w") as stream:
-        json.dump(loss_append, stream)
+        json.dump(TrainError, stream)
     with open("HW2_Training_accurancy.json", mode="w") as stream:
         json.dump(train_accur, stream)
-    with open("HW2_Testing_accurancy.json", mode="w") as stream:
-        json.dump(test_accur, stream)
 
-train_epoch(model, train_data, Y_train, test_data, Y_test, batch_size = 64, epoch = 30)
+
 

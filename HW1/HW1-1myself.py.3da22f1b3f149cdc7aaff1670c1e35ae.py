@@ -106,9 +106,8 @@ class Layer:
 
 
 hiddenlayer1 = Layer(784, 400)
-hiddenlayer2 = Layer(400, 2)
-# hiddenlayer3 = Layer(200, 2)
-outputlayer = Layer(2, 10)
+hiddenlayer2 = Layer(400, 400)
+outputlayer = Layer(400, 10)
 
 
 def SGD_train_epoch(X_train, Y_train, batch_size=64, epoch=10, learning_rate=0.03):
@@ -150,7 +149,7 @@ def SGD_train_epoch(X_train, Y_train, batch_size=64, epoch=10, learning_rate=0.0
             output2_temp = hiddenlayer2.forward(output1)
             if store_latent_feature:
                 latent_features.extend(
-                    [np.hstack([output_node, np.argmax(y_temp, axis=0)]).tolist() for output_node, y_temp in zip(np.swapaxes(output2_temp, 1, 0), np.swapaxes(Y, 1, 0))])
+                    [np.hstack([output_node, np.argmax(y_temp, axis=0)]).tolist() for output_node, y_temp in zip(np.reshape(output2_temp, (-1, 2)), np.reshape(Y, (-1, 10)))])
             # import ipdb
             # ipdb.set_trace()
             output2 = sigmoid(output2_temp)
@@ -218,4 +217,4 @@ def SGD_train_epoch(X_train, Y_train, batch_size=64, epoch=10, learning_rate=0.0
     #     json.dump(training_loss, stream)
 
 
-SGD_train_epoch(X_train, Y_train, batch_size=64, epoch=100, learning_rate=0.03)
+SGD_train_epoch(X_train, Y_train, batch_size=64, epoch=1, learning_rate=0.03)
