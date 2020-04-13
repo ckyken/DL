@@ -13,3 +13,10 @@
 [dan59314/MNIST-Deep-Learning: Deep Learning codes for MNIST with detailed explanation](https://github.com/dan59314/MNIST-Deep-Learning)
 
 [Build Neural Network from scratch with Numpy on MNIST Dataset - Zhenye's Blog](https://zhenye-na.github.io/2018/09/09/build-neural-network-with-mnist-from-scratch.html)
+
+Test accuracy
+
+![accuracy](HW1_figure/accurancy.png)
+
+
+..
