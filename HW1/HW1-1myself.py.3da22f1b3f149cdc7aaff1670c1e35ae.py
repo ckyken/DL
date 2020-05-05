@@ -81,9 +81,8 @@ class Layer:
     def __init__(self, input_, output):
         self.input = input_
         self.output = output  # number of layer node
-        # self.W = np.random.randn(
-        #     self.output, self.input)*np.sqrt(1. / self.input)
-        self.W = np.zeros((self.output, self.input))
+        self.W = np.random.randn(
+            self.output, self.input) * np.sqrt(1. / self.input)
         self.b = np.zeros((self.output, 1)) * np.sqrt(1. / self.input)
 
     def forward(self, last_layer):
@@ -108,7 +107,6 @@ class Layer:
 
 hiddenlayer1 = Layer(784, 400)
 hiddenlayer2 = Layer(400, 400)
-# hiddenlayer3 = Layer(200, 2)
 outputlayer = Layer(400, 10)
 
 
@@ -149,9 +147,9 @@ def SGD_train_epoch(X_train, Y_train, batch_size=64, epoch=10, learning_rate=0.0
             output1_temp = hiddenlayer1.forward(X)
             output1 = sigmoid(output1_temp)
             output2_temp = hiddenlayer2.forward(output1)
-            # if store_latent_feature:
-            #     latent_features.extend(
-            #         [np.hstack([output_node, np.argmax(y_temp, axis=0)]).tolist() for output_node, y_temp in zip(np.swapaxes(output2_temp, 1, 0), np.swapaxes(Y, 1, 0))])
+            if store_latent_feature:
+                latent_features.extend(
+                    [np.hstack([output_node, np.argmax(y_temp, axis=0)]).tolist() for output_node, y_temp in zip(np.reshape(output2_temp, (-1, 2)), np.reshape(Y, (-1, 10)))])
             # import ipdb
             # ipdb.set_trace()
             output2 = sigmoid(output2_temp)
@@ -190,8 +188,8 @@ def SGD_train_epoch(X_train, Y_train, batch_size=64, epoch=10, learning_rate=0.0
             predicts_test += np.argmax(y_hat, axis=0).tolist()
             golds_test += np.argmax(Y_test, axis=0).tolist()
 
-        # if store_latent_feature:
-        #     features.append(latent_features)
+        if store_latent_feature:
+            features.append(latent_features)
 #             loss_test = cross_entropy(Y_test, y_hat)
 
         print('Epoch : ', i + 1, 'training_loss = ', epoch_loss / len(Y_train), 'train_accur = ',
@@ -201,8 +199,8 @@ def SGD_train_epoch(X_train, Y_train, batch_size=64, epoch=10, learning_rate=0.0
         TestError.append(1 - evaluation(predicts_test, golds_test))
         training_loss.append((epoch_loss / len(Y_train)))
 
-    # with open("features.json", mode="w") as stream:
-    #     json.dump(features, stream)
+    with open("features.json", mode="w") as stream:
+        json.dump(features, stream)
 
     # with open("predicts_test.json", mode="w") as stream:
     #     json.dump(predicts_test, stream)
@@ -219,4 +217,4 @@ def SGD_train_epoch(X_train, Y_train, batch_size=64, epoch=10, learning_rate=0.0
     #     json.dump(training_loss, stream)
 
 
-SGD_train_epoch(X_train, Y_train, batch_size=64, epoch=500, learning_rate=0.03)
+SGD_train_epoch(X_train, Y_train, batch_size=64, epoch=1, learning_rate=0.03)
