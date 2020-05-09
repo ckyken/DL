@@ -19,4 +19,24 @@ Test accuracy
 ![accuracy](HW1_figure/accurancy.png)
 
 
+
+
+* [jupyter notebook code](HW2)
+[pandas.DataFrame.dropna — pandas 1.0.3 documentation](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.dropna.html)
+
+[pandas.DataFrame.diff — pandas 1.0.3 documentation](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.diff.html)
+
+[sklearn.model_selection.train_test_split — scikit-learn 0.22.2 documentation](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html)
+
+[torch.Tensor — PyTorch master documentation](https://pytorch.org/docs/stable/tensors.html)
+
+[torch — PyTorch master documentation => unsqueeze](https://pytorch.org/docs/stable/torch.html#torch.unsqueeze)
+
+[Variational Inference: Bayesian Neural Networks — PyMC3 3.8 documentation](https://docs.pymc.io/notebooks/bayesian_neural_network_advi.html)
 ..
+
+## Homework 2
+
+### 1. COVID-19
+
+Predict next day

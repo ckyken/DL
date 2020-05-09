@@ -133,3 +133,9 @@ dmypy.json
 *.json
 
 HW1_2/problem2-CNN
+
+HW2/2-1/*.svg
+
+HW2/2-2/data
+HW2/2-2/model
+HW2/2-2/results

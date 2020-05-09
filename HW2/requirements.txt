@@ -1,0 +1,7 @@
+sklearn
+numpy
+pandas
+torch
+torchvision
+pygal
+pygal_maps_world
