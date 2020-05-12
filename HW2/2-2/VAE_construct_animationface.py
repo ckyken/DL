@@ -1,3 +1,4 @@
+import ipdb
 import argparse
 import torch
 import torch.utils.data
@@ -9,6 +10,7 @@ from torchvision.utils import save_image
 import numpy as np
 import os
 from data_loader import AnimationFaceDataset, ToTensor, Normalize
+import matplotlib.pyplot as plt
 
 
 MODEL_PATH = 'model'
@@ -58,6 +60,9 @@ test_loader = torch.utils.data.DataLoader(
     test_set, batch_size=args.batch_size, shuffle=True, **kwargs)
 
 
+version_info = 'epoch_{}_KL_{}'
+
+
 class VAE(nn.Module):
     def __init__(self, img_height: int = IMG_HEIGHT, color: int = COLOR):
         super(VAE, self).__init__()
@@ -69,6 +74,28 @@ class VAE(nn.Module):
         self.fc22 = nn.Linear(400, 20)
         self.fc3 = nn.Linear(20, 400)
         self.fc4 = nn.Linear(400, self.img_size)
+
+    # def __init__(self, img_height: int = IMG_HEIGHT, color: int = COLOR):
+    #     super(VAE, self).__init__()
+    #     self.CNN = nn.Sequential(
+
+    #         Conv2d(3, 3, 3, 1, 1),
+    #         BatchNorm2d(4),
+    #         ReLU(inplace=True),
+    #         MaxPool2d(2, 2),
+
+    #         Conv2d(3, 3, 3, 1, 1),
+    #         BatchNorm2d(4),
+    #         ReLU(inplace=True),
+    #         MaxPool2d(2, 2),
+    #     )
+    #     self.img_height = img_height
+    #     self.img_size = img_height**2 * color
+    #     self.fc1 = nn.Linear(self.img_size, 400)
+    #     self.fc21 = nn.Linear(400, 20)
+    #     self.fc22 = nn.Linear(400, 20)
+    #     self.fc3 = nn.Linear(20, 400)
+    #     self.fc4 = nn.Linear(400, self.img_size)
 
     def encode(self, x):
         h1 = F.relu(self.fc1(x))
@@ -96,7 +123,7 @@ optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
-    """ i.e. ELBO """
+    """ i.e. -ELBO """
     BCE = F.binary_cross_entropy(
         recon_x, x.view(-1, COLOR * IMG_HEIGHT**2), reduction='sum')
 
@@ -112,6 +139,7 @@ def loss_function(recon_x, x, mu, logvar):
 def train(epoch):
     model.train()
     train_loss = 0
+    ELBO = []
     for batch_idx, data in enumerate(train_loader):
         data = data['image']
         data = data.to(device)
@@ -126,9 +154,10 @@ def train(epoch):
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader),
                 loss.item() / len(data)))
-
+            ELBO.append(loss.item() / len(data))
     print('====> Epoch: {} Average loss: {:.4f}'.format(
           epoch, train_loss / len(train_loader.dataset)))
+    return ELBO
 
 
 def test(epoch):
@@ -145,7 +174,7 @@ def test(epoch):
                 comparison = torch.cat([data[:n],
                                         recon_batch.view(args.batch_size, COLOR, IMG_HEIGHT, IMG_HEIGHT)[:n]])
                 save_image(comparison.cpu(),
-                           'results/reconstruction_' + str(epoch) + '.png', nrow=n)
+                           'results/reconstruction_' + version_info.format(epoch, args.kl_scale) + '.png', nrow=n)
 
     test_loss /= len(test_loader.dataset)
     print('====> Test set loss: {:.4f}'.format(test_loss))
@@ -155,13 +184,19 @@ if __name__ == "__main__":
     print(np.sum([torch.numel(param) for param in model.parameters()]))
     os.makedirs('results', exist_ok=True)
     os.makedirs(MODEL_PATH, exist_ok=True)
+    ELBO = []
     for epoch in range(1, args.epochs + 1):
-        train(epoch)
+        ELBO＿part = train(epoch)
+        ELBO.extend(ELBO＿part)
         torch.save(model.state_dict(), os.path.join(
-            MODEL_PATH, f'model_epoch_{epoch}_KL_{args.kl_scale}.pt'))
+            MODEL_PATH, 'model_' + version_info.format(epoch, args.kl_scale) + '.pt'))
         test(epoch)
         with torch.no_grad():
             sample = torch.randn(64, 20).to(device)
             sample = model.decode(sample).cpu()
             save_image(sample.view(64, COLOR, IMG_HEIGHT, IMG_HEIGHT),
-                       'results/sample_' + str(epoch) + '.png')
+                       'results/sample_' + version_info.format(epoch, args.kl_scale) + '.png')
+
+    plt.figure()
+    plt.plot(list(range(1, len(ELBO) + 1)), ELBO)
+    plt.show()

@@ -8,14 +8,15 @@ from typing import List, Set
 from sklearn.model_selection import train_test_split
 from torch.optim import Adam
 from pygal.maps.world import COUNTRIES, World
+import json
 
 
-INTERVAL = 20  # L
+INTERVAL = 40  # L
 INPUT_SIZE = 1  # only one input number for each time step
 HIDDEN_SIZE = 128
 RANDOM_SEED = 87
-# RNN_MODULE = nn.RNN
-RNN_MODULE = nn.LSTM
+RNN_MODULE = nn.RNN
+# RNN_MODULE = nn.LSTM
 # RNN_MODULE = nn.GRU
 
 
@@ -83,6 +84,8 @@ def evaluation(gold: List[bool], predict: List[bool]):
 def train(model: nn.Module, loss_func, optimizer, data: np.array, test_data: np.array, epochs: int = 10, batch_size: int = 16, interval: int = INTERVAL):
     countries, days = data.shape
     iteration = 0
+    train_acc_list = []
+    test_acc_list = []
     loss = []
     for epoch in range(epochs):
         epoch_loss = 0
@@ -116,15 +119,30 @@ def train(model: nn.Module, loss_func, optimizer, data: np.array, test_data: np.
                 optimizer.step()
 
         accuracy = evaluation(gold, predict)
+        train_acc_list.append(accuracy)
         # print("epoch", epoch + 1, "loss:",
         #       epoch_loss / countries, "acc:", accuracy)
 
         model.eval()
         prob_predict, test_acc = test(model, test_data)
+        test_acc_list.append(test_acc)
         model.train()
 
         print("epoch:", epoch + 1, "iteration:", iteration, "loss:",
               epoch_loss / countries, "acc:", accuracy, "acc_test:", test_acc)
+
+    # with open("train_acc_LSTM.json", mode='w') as stream:
+    #     json.dump(train_acc_list, stream)
+    # with open("test_acc_LSTM.json", mode='w') as stream:
+    #     json.dump(test_acc_list, stream)
+    # with open("train_acc_GRU.json", mode='w') as stream:
+    #     json.dump(train_acc_list, stream)
+    # with open("test_acc_GRU.json", mode='w') as stream:
+    #     json.dump(test_acc_list, stream)
+    # with open("train_acc_RNN.json", mode='w') as stream:
+    #     json.dump(train_acc_list, stream)
+    # with open("test_acc_RNN.json", mode='w') as stream:
+    #     json.dump(test_acc_list, stream)
 
 
 def test(model: nn.Module, data: np.array, epochs: int = 10, interval: int = INTERVAL):
@@ -219,7 +237,7 @@ def draw_word_map(prob_predict: List[float], countries: List[str], output_file: 
     < 0.5 descending => 1 - prob
     """
     worldmap_chart = World()
-    worldmap_chart.title = 'Motherfucker'
+    worldmap_chart.title = 'Ｗorld Map'
     accending = {}
     descending = {}
     for prob, country in zip(prob_predict, countries):

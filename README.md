@@ -33,6 +33,8 @@ Test accuracy
 [torch — PyTorch master documentation => unsqueeze](https://pytorch.org/docs/stable/torch.html#torch.unsqueeze)
 
 [Variational Inference: Bayesian Neural Networks — PyMC3 3.8 documentation](https://docs.pymc.io/notebooks/bayesian_neural_network_advi.html)
+
+[[Day09]Pandas索引的運用！ - iT 邦幫忙::一起幫忙解決難題，拯救 IT 人的一天](https://ithelp.ithome.com.tw/articles/10194006)
 ..
 
 ## Homework 2

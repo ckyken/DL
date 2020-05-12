@@ -38,7 +38,7 @@ class AnimationFaceDataset(Dataset):
 
         img_name = self.img_path[idx]
         image = io.imread(img_name)
-        sample = {'image': image}
+        sample = {'image': image, 'img_path': img_name}
 
         if self.transform:
             sample = self.transform(sample)
