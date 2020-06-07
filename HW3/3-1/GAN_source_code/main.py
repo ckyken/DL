@@ -152,7 +152,7 @@ def train(dataloader, generator, discriminator, optimizer_g, optimizer_d, criter
             'generator': generator.state_dict()
         }
         torch.save(model, os.path.join(
-            'model', 'model_' + epoch + '.pt'))
+            'model', 'model_' + str(epoch) + '.pt'))
 
     with open('log/img_list.pkl', 'wb') as fp:
         pickle.dump(img_list, fp)
