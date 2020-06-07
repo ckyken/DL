@@ -151,7 +151,8 @@ class DQN(object):
             # random select for epsilon greedy (Dependent on the exploration probability)
             # assert False, "You should check the source code for your homework!!"
             # torch.tensor([[random.randrange(self.action_dim)]], device=device, dtype=torch.long)
-            return torch.tensor([random.sample([0, 1, 2], 1)], device=device, dtype=torch.long)
+            # return torch.tensor([random.sample([0, 1, 2], 1)], device=device, dtype=torch.long)
+            return torch.tensor([random.choices([0, 1, 2], [0.3, 0.6, 0.1])], device=device, dtype=torch.long)
         else:
             with torch.no_grad():
                 return self.policy_net(state).max(1)[1].view(1, 1)
@@ -318,7 +319,7 @@ def main():
 
         for _ in range(10000):
             # env.render()  # visualization
-            env.env.render()
+            # env.env.render()
             action = agent.select_action(state)
             next_state, reward, done, _ = env.step(action.item())
 
