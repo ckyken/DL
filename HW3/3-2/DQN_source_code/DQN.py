@@ -25,11 +25,12 @@ import argparse
 import numpy as np
 from collections import namedtuple
 import time
-
+import logging
 import cv2
 from PIL import Image
 import matplotlib
 import matplotlib.pyplot as plt
+import pickle
 
 import torch
 import torch.nn as nn
@@ -37,7 +38,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Use device: %s" % device)
+
 
 # Please tune the hyperparameters
 parser = argparse.ArgumentParser()
@@ -65,6 +66,27 @@ parser.add_argument("--test", action='store_true')
 
 Transition = namedtuple(
     'Transition', ('state', 'action', 'next_state', 'reward', 'done'))
+
+
+def get_logger(log_dir='log'):
+    os.makedirs(log_dir, exist_ok=True)
+    logging.basicConfig(
+        format='%(asctime)s [%(levelname)s:%(name)s]: %(message)s', level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+
+    log_file_name = time.strftime("%Y%m%d-%H%M%S") + '.log'
+    file_handler = logging.FileHandler(os.path.join(log_dir, log_file_name))
+    formatter = logging.Formatter(
+        '%(asctime)s : %(levelname)s : %(name)s : %(message)s')
+    file_handler.setFormatter(formatter)
+
+    logger.addHandler(file_handler)
+    return logger
+
+
+logger = get_logger()
+logger.info("Use device: %s" % device)
 
 
 class ReplayMemory(object):
@@ -161,7 +183,8 @@ class DQN(object):
         if random.random() < rand:
             # random select for evaluate action should be the final epsilon in training
             # assert False, "You should check the source code for your homework!!"
-            return torch.tensor([random.sample([0, 1, 2], 1)], device=device, dtype=torch.long)
+            # return torch.tensor([random.sample([0, 1, 2], 1)], device=device, dtype=torch.long)
+            return torch.tensor([random.choices([0, 1, 2], [0.3, 0.6, 0.1])], device=device, dtype=torch.long)
         with torch.no_grad():
             return self.target_net(state).max(1)[1].view(1, 1)
 
@@ -171,7 +194,7 @@ class DQN(object):
     def update(self):
 
         if len(self.memory) < self.BATCH_SIZE:
-            print("[Warning] Memory data less than batch sizes!")
+            logger.info("[Warning] Memory data less than batch sizes!")
             return
 
         transitions = self.memory.sample(self.BATCH_SIZE)
@@ -247,7 +270,7 @@ class DQN(object):
         self.target_net.load_state_dict(torch.load(path))
         self.policy_net.load_state_dict(torch.load(path))
         self.target_net.eval()
-        print("[Info] Restore model from '%s' !" % path)
+        logger.info("[Info] Restore model from '%s' !" % path)
 
 
 class RandomAgent(object):
@@ -301,13 +324,15 @@ class Atari(object):
 def main():
     num_episodes = args.train_ep
     save_model_per_ep = args.save_per_ep
-    log_fd = open(args.log_file, 'w')
+    # log_fd = open(args.log_file, 'w')
 
-    log_fd.write("Use device: %s\n" % device)
+    # log_fd.write("Use device: %s\n" % device)
 
     ########## Training ##########
     agent = DQN()
     env = Atari()
+
+    values = {'episode': [], 'reward': [], 'epsilon': []}
 
     if args.load_model:
         agent.restore_model(args.load_model)
@@ -342,16 +367,20 @@ def main():
                 agent.update()
 
             if done:
-                print("Episode: %6d, interaction_steps: %6d, reward: %2d, epsilon: %f" % (
-                    i_episode+1, agent.interaction_steps, episode_reward, agent.epsilon))
-                log_fd.write("Episode: %6d, interaction_steps: %6d, reward: %2d, epsilon: %f\n" % (
-                    i_episode+1, agent.interaction_steps, episode_reward, agent.epsilon))
+                logger.info("Episode: %6d, interaction_steps: %6d, reward: %2d, epsilon: %f" % (
+                    i_episode + 1, agent.interaction_steps, episode_reward, agent.epsilon))
+                values['episode'] = i_episode + 1
+                values['reward'] = episode_reward
+                values['epsilon'] = agent.epsilon
+
+                # log_fd.write("Episode: %6d, interaction_steps: %6d, reward: %2d, epsilon: %f\n" % (
+                #     i_episode+1, agent.interaction_steps, episode_reward, agent.epsilon))
                 break
 
         if i_episode % save_model_per_ep == 0:
             agent.save_model(args.save_dir)
-            print("[Info] Save model at '%s' !" % args.save_dir)
-            log_fd.write("[Info] Save model at '%s' !\n" % args.save_dir)
+            logger.info("[Info] Save model at '%s' !" % args.save_dir)
+            # log_fd.write("[Info] Save model at '%s' !\n" % args.save_dir)
 
         if i_episode % args.eval_per_ep == 0:
             test_env = Atari()
@@ -367,12 +396,14 @@ def main():
                     episode_reward += reward
             average_reward += episode_reward
 
-            print("Evaluation: True, episode: %6d, interaction_steps: %6d, evaluate reward: %2d" % (
+            logger.info("Evaluation: True, episode: %6d, interaction_steps: %6d, evaluate reward: %2d" % (
                 i_episode+1, agent.interaction_steps, average_reward/test_times))
-            log_fd.write("Evaluation: True, episode: %6d, interaction_steps: %6d, evaluate reward: %2d\n" % (
-                i_episode+1, agent.interaction_steps, average_reward/test_times))
+            # log_fd.write("Evaluation: True, episode: %6d, interaction_steps: %6d, evaluate reward: %2d\n" % (
+            #     i_episode+1, agent.interaction_steps, average_reward/test_times))
 
-    log_fd.close()
+    # log_fd.close()
+    with open('values.pkl', 'wb') as fp:
+        pickle.dump(values, fp)
 
 
 def test():
@@ -397,7 +428,7 @@ def test():
             episode_reward += reward
 
             if done:
-                print("Episode: %6d, interaction_steps: %6d, reward: %2d, epsilon: %f" % (
+                logger.info("Episode: %6d, interaction_steps: %6d, reward: %2d, epsilon: %f" % (
                     i_episode, agent.interaction_steps, episode_reward, test_epsilon))
                 break
 
