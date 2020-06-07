@@ -303,6 +303,8 @@ def main():
     save_model_per_ep = args.save_per_ep
     log_fd = open(args.log_file, 'w')
 
+    log_fd.write("Use device: %s\n" % device)
+
     ########## Training ##########
     agent = DQN()
     env = Atari()
@@ -349,6 +351,7 @@ def main():
         if i_episode % save_model_per_ep == 0:
             agent.save_model(args.save_dir)
             print("[Info] Save model at '%s' !" % args.save_dir)
+            log_fd.write("[Info] Save model at '%s' !\n" % args.save_dir)
 
         if i_episode % args.eval_per_ep == 0:
             test_env = Atari()
