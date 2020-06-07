@@ -142,8 +142,8 @@ def train(dataloader, generator, discriminator, optimizer_g, optimizer_d, criter
                     fake, padding=2, normalize=True))
 
         iters += 1
-        G_losses = append(epoch_G_losses)
-        D_losses = append(epoch_D_losses)
+        G_losses.append(epoch_G_losses)
+        D_losses.append(epoch_D_losses)
         # save model
         # os.makedirs('info', exist_ok=True)
         os.makedirs('model', exist_ok=True)
@@ -153,11 +153,12 @@ def train(dataloader, generator, discriminator, optimizer_g, optimizer_d, criter
         }
         torch.save(model, os.path.join(
             'model', 'model_' + epoch + '.pt'))
-    with open('img_list.pkl', 'wb') as fp:
+
+    with open('log/img_list.pkl', 'wb') as fp:
         pickle.dump(img_list, fp)
-    with open('G_loss.pkl', 'wb') as fp:
+    with open('log/G_loss.pkl', 'wb') as fp:
         pickle.dump(G_losses, fp)
-    with open('D_loss.pkl', 'wb') as fp:
+    with open('log/D_loss.pkl', 'wb') as fp:
         pickle.dump(D_losses, fp)
 
 
