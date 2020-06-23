@@ -85,7 +85,7 @@ X_test = hstack([X_test_old, keyword_test])
 
 # 降 維
 X_reduce = TruncatedSVD(n_components=300).fit_transform(X)
-X_reduce.shape
+X_test_reduce = TruncatedSVD(n_components=300).fit_transform(X_test)
 
 y = train_data['label'].tolist()
 
@@ -100,7 +100,7 @@ clf = make_pipeline(StandardScaler(with_mean=False),
 
 clf.fit(X_reduce, y)
 
-predicts = clf.predict(X_test)
+predicts = clf.predict(X_test_reduce)
 
 
 with open(time.strftime("%Y%m%d-%H%M%S") + 'submission.csv', 'w') as fp:
