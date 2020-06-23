@@ -4,9 +4,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from scipy.sparse import hstack
 from sklearn.decomposition import TruncatedSVD
 
+import time
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVC
+# from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
 
 
 def load_data(data_path: str):
@@ -90,14 +92,18 @@ y = train_data['label'].tolist()
 print("start training")
 
 # SVM
+# clf = make_pipeline(StandardScaler(with_mean=False),
+#                     SVC(gamma='auto', verbose=True))
+
 clf = make_pipeline(StandardScaler(with_mean=False),
-                    SVC(gamma='auto', verbose=True))
+                    LinearSVC(random_state=0, tol=1e-5, verbose=1))
+
 clf.fit(X_reduce, y)
 
 predicts = clf.predict(X_test)
 
 
-with open('submission.csv', 'w') as fp:
+with open(time.strftime("%Y%m%d-%H%M%S") + 'submission.csv', 'w') as fp:
     fp.write('id,lable\n')
     for i, predict in enumerate(predicts):
         fp.write('%d,%d' % (i, predict))
