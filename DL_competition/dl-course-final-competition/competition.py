@@ -106,4 +106,4 @@ predicts = clf.predict(X_test_reduce)
 with open(time.strftime("%Y%m%d-%H%M%S") + 'submission.csv', 'w') as fp:
     fp.write('id,lable\n')
     for i, predict in enumerate(predicts):
-        fp.write('%d,%d' % (i, predict))
+        fp.write('%d,%d\n' % (i, predict))
