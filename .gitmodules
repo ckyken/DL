@@ -1,0 +1,3 @@
+[submodule "DL_competition/BERT-TextClassification"]
+	path = DL_competition/BERT-TextClassification
+	url = https://github.com/ckyken/Bert-Pytorch-Chinese-TextClassification.git
