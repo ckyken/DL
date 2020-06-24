@@ -103,7 +103,7 @@ clf.fit(X_reduce, y)
 predicts = clf.predict(X_test_reduce)
 
 
-with open(time.strftime("%Y%m%d-%H%M%S") + 'submission.csv', 'w') as fp:
+with open(time.strftime("%Y%m%d-%H%M%S") + 'submission_new.csv', 'w') as fp:
     fp.write('id,lable\n')
     for i, predict in enumerate(predicts):
         fp.write('%d,%d\n' % (i, predict))
