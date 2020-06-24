@@ -96,7 +96,7 @@ print("start training")
 #                     SVC(gamma='auto', verbose=True))
 
 clf = make_pipeline(StandardScaler(with_mean=False),
-                    LinearSVC(random_state=0, tol=1e-5, verbose=1))
+                    LinearSVC(random_state=0, tol=1e-5, verbose=1, max_iter=15000))
 
 clf.fit(X_reduce, y)
 
